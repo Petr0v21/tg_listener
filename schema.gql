@@ -1,0 +1,20 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type ListenerOutput {
+  apiId: Float!
+}
+
+type SuccessOutput {
+  success: Boolean!
+}
+
+type Query {
+  listeners: [ListenerOutput!]!
+}
+
+type Mutation {
+  addListener(apiId: Float!, apiHash: String!, phone: String!, stringSession: String = ""): ListenerOutput!
+  deleteListener(id: Float!): SuccessOutput!
+}

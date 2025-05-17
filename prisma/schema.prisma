@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Listener {
+  apiId   Int  @id @map("api_id")
+  apiHash String  @map("api_hash")
+
+  phone String
+
+  stringSession String
+
+  isActive Boolean @default(false)
+
+  username   String?
+  firstName  String? @map("first_name")
+  lastName   String? @map("last_name")
+
+
+  createdAt DateTime @default(now())  @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("listeners")
+}
