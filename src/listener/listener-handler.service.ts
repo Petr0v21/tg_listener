@@ -186,8 +186,6 @@ export class ListenerHelperService {
 
     if (contentType === ContentTypeEnum.PHOTO) {
       const fileType = await fromBuffer(buffer);
-      console.log(fileType);
-
       mimeType = fileType?.mime || 'image/jpeg';
       extension = fileType?.ext || 'jpg';
     }
@@ -195,8 +193,6 @@ export class ListenerHelperService {
     const hash = createHash('sha256').update(buffer).digest('hex');
 
     const _fileName = `${hash}.${extension}`;
-
-    console.log(mimeType, extension, _fileName);
 
     const result = await this.sendBufferToUploader(buffer, _fileName);
 

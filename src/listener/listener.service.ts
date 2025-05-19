@@ -125,12 +125,12 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
     });
 
     client.addEventHandler(async (update) => {
-      if (update.className === 'UpdateShortMessage' && update.out) {
+      if (update.className === 'UpdateShortMessage' && !update.out) {
         const sentAt = new Date(update.date * 1000);
         console.log(sentAt.toISOString());
 
         this.logger.log(
-          `New short message from ${me.id} (@${me.username}) to ${update.userId}`,
+          `New short message to ${me.id} (@${me.username}) from ${update.userId}`,
         );
         const userId = update.userId;
         try {
@@ -143,8 +143,8 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
 
           this.helperService.sendMessage({
             apiId,
-            from: me,
-            to: entity,
+            from: entity,
+            to: me,
             text: update.message,
             sentAt,
           });
@@ -154,12 +154,12 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
       } else if (
         this.avalibleClassNameMesasge.includes(update.className) &&
         update.message &&
-        update.message.out
+        !update.message.out
       ) {
         const sentAt = new Date(update.message.date * 1000);
 
         this.logger.log(
-          `New message from ${me.id} (@${me.username}) to ${update.message.peerId?.chatId ?? update.message.peerId?.userId ?? update.message.peerId?.channelId}`,
+          `New message to ${me.id} (@${me.username}) from ${update.message.peerId?.chatId ?? update.message.peerId?.userId ?? update.message.peerId?.channelId}`,
         );
         const message = update.message.message;
 
@@ -178,8 +178,8 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
 
           this.helperService.sendMessage({
             apiId,
-            from: me,
-            to: entity,
+            from: entity,
+            to: me,
             text: message,
             media: media ?? undefined,
             sentAt,
