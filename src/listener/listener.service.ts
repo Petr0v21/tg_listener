@@ -127,7 +127,6 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
     client.addEventHandler(async (update) => {
       if (update.className === 'UpdateShortMessage' && !update.out) {
         const sentAt = new Date(update.date * 1000);
-        console.log(sentAt.toISOString());
 
         this.logger.log(
           `New short message to ${me.id} (@${me.username}) from ${update.userId}`,

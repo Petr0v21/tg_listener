@@ -222,7 +222,7 @@ export class ListenerHelperService {
           type: TypeTelegramMessage.GROUP,
           contentType: media?.contentType ?? ContentTypeEnum.TEXT,
           fileUrl: media?.fileUrl,
-          text: `👤 <b>Пользователь</b> [${apiId}] - <b>${(from.firstName ?? '' + from.lastName ?? '').trim()}</b> ${from.username ? `(${from.username})` : ''}\n↪️ <b>To ${to.title ? '[Group/Channel]' : ''}${to.username ? `[${to.username.slice(-3).toLocaleLowerCase() === 'bot' ? 'Bot' : 'User'}]` : ''}:</b> <b>${to.title ?? (to.firstName ?? '' + to.lastName ?? '').trim()}</b> ${to.username ? `(${to.username})` : ''}${text ? `\n📃<b>Text:</b> ${text.trim()}` : ''}\n🕑 Timestamp (<b>UTC±0</b>): ${sentAt.toISOString().replace('T', ' ').slice(0, 19)}`,
+          text: `👤 <b>Пользователь</b> [${apiId}] - <b>${(from.firstName ?? '' + from.lastName ?? '').trim()}</b> ${from.username ? `(${from.username})` : ''}\n↪️ <b>To ${to.title ? '[Group/Channel]' : ''}${to.username ? `[${to.username.slice(-3).toLocaleLowerCase() === 'bot' ? 'Bot' : 'User'}]` : ''}:</b> <b>${to.title ?? (to.firstName ?? '' + to.lastName ?? '').trim()}</b> ${to.username ? `(${to.username})` : ''}${text ? `\n📃<b>Text:</b> ${text.trim()}` : ''}\n🕑 Timestamp (<b>UTC+3</b>): ${new Date(sentAt.setHours(sentAt.getHours() + 3)).toISOString().replace('T', ' ').slice(0, 19)}`,
         },
         headers: {
           'x-original-routing-key': 'tg.send',
