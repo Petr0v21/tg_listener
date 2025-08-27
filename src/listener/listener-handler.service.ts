@@ -10,7 +10,9 @@ import {
   UploadFileResponse,
 } from './listener.types';
 import { extension as ext } from 'mime-types';
-import { FormData, request } from 'undici';
+// import { FormData, request } from 'undici';
+import * as FormData from 'form-data';
+import fetch from 'node-fetch';
 import { RedisService } from 'src/redis/redis.service';
 import { createHash } from 'crypto';
 import { fromBuffer } from 'file-type';
@@ -61,13 +63,11 @@ export class ListenerHelperService {
       }
     };
 
-    // 1. Пробуем скачать напрямую
     if (!event?.media) return null;
 
     let buffer = await download(event.media);
     if (buffer) return buffer;
 
-    // 2. Рефетчим сообщение, если fileReference устарел
     try {
       const freshMsg = await client.getMessages(chatId, { ids: event.id });
       const message = freshMsg[0];
@@ -84,26 +84,26 @@ export class ListenerHelperService {
     }
   }
 
-  public async sendBufferToUploader(buffer: Buffer, filename: string) {
+  public async sendBufferToUploader(buffer: Buffer, filename: string, mime = 'application/octet-stream') {
     try {
-      const form = new FormData();
-      const blob = new Blob([buffer]);
-
-      form.append('file', blob, filename);
-
-      const response = await request(
-        this.configService.get('UPLOADER_HOST') + '/api/media',
-        {
-          method: 'POST',
-          body: form,
-        },
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw new Error(`Upload failed with status ${response.statusCode}`);
+      if (!buffer || !(Buffer.isBuffer(buffer))) {
+        throw new Error('sendBufferToUploader: invalid buffer');
+      }
+      if (buffer.byteLength === 0) {
+        throw new Error('sendBufferToUploader: empty buffer');
       }
 
-      const data = await response.body.json();
+      const form = new FormData();
+      form.append('file', buffer, { filename, contentType: mime });
+      
+      const res = await fetch(this.configService.get('UPLOADER_HOST') + '/api/media', {
+        method: 'POST',
+        body: form as any,
+        headers: form.getHeaders()
+      });
+
+      const data = await res.json();
+
       return data as unknown as UploadFileResponse;
     } catch (err) {
       this.logger.error(`Error sendBufferToUploader: ${err}`);
@@ -117,6 +117,7 @@ export class ListenerHelperService {
   ): Promise<SendMessageMediaType | null> {
     if (!event.media) return null;
 
+    
     let contentType: ContentTypeEnum = ContentTypeEnum.TEXT;
     let extension = 'bin';
     let mimeType = '';
@@ -180,14 +181,26 @@ export class ListenerHelperService {
         `Unknown media at update message: ${JSON.stringify(event)}`,
       );
       return null;
-    }
+    }   
+    
 
     const buffer = await this.getBufferMedia(client, event, chatId);
 
+    if (!buffer) {
+      this.logger.warn('No media buffer obtained, skip upload');
+      return null;
+    }
+
     if (contentType === ContentTypeEnum.PHOTO) {
-      const fileType = await fromBuffer(buffer);
-      mimeType = fileType?.mime || 'image/jpeg';
-      extension = fileType?.ext || 'jpg';
+      try {
+        const fileType = await fromBuffer(buffer);
+        
+        mimeType = fileType?.mime || 'image/jpeg';
+        extension = fileType?.ext || 'jpg';
+
+      } catch (err) {
+        this.logger.error('Cannot take fileType from buffer photo!');
+      }
     }
 
     const hash = createHash('sha256').update(buffer).digest('hex');
@@ -222,7 +235,7 @@ export class ListenerHelperService {
           type: TypeTelegramMessage.GROUP,
           contentType: media?.contentType ?? ContentTypeEnum.TEXT,
           fileUrl: media?.fileUrl,
-          text: `👤 <b>Пользователь</b> [${apiId}] - <b>${(from.firstName ?? '' + from.lastName ?? '').trim()}</b> ${from.username ? `(${from.username})` : ''}\n↪️ <b>To ${to.title ? '[Group/Channel]' : ''}${to.username ? `[${to.username.slice(-3).toLocaleLowerCase() === 'bot' ? 'Bot' : 'User'}]` : ''}:</b> <b>${to.title ?? (to.firstName ?? '' + to.lastName ?? '').trim()}</b> ${to.username ? `(${to.username})` : ''}${text ? `\n📃<b>Text:</b> ${text.trim()}` : ''}\n🕑 Timestamp (<b>UTC+3</b>): ${new Date(sentAt.setHours(sentAt.getHours() + 3)).toISOString().replace('T', ' ').slice(0, 19)}`,
+          text: `👤 <b>Пользователь</b> [${apiId}]\n<b>From ${from.title ? '[Group/Channel]' : ''}${from.username ? `[${from.username.slice(-3).toLocaleLowerCase() === 'bot' ? 'Bot' : 'User'}]` : ''}:</b> <b>${(from.firstName ?? '' + from.lastName ?? '').trim()}</b> ${from.username ? `(${from.username})` : ''}\n↪️ <b>To ${to.title ? '[Group/Channel]' : ''}${to.username ? `[${to.username.slice(-3).toLocaleLowerCase() === 'bot' ? 'Bot' : 'User'}]` : ''}:</b> <b>${to.title ?? (to.firstName ?? '' + to.lastName ?? '').trim()}</b> ${to.username ? `(${to.username})` : ''}${text ? `\n📃<b>Text:</b> ${text.trim()}` : ''}\n🕑 Timestamp (<b>UTC+3</b>): ${new Date(sentAt.setHours(sentAt.getHours() + 3)).toISOString().replace('T', ' ').slice(0, 19)}`,
         },
         headers: {
           'x-original-routing-key': 'tg.send',

@@ -125,7 +125,8 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
     });
 
     client.addEventHandler(async (update) => {
-      if (update.className === 'UpdateShortMessage' && !update.out) {
+        const isMeSend = !!update.out;
+      if (update.className === 'UpdateShortMessage') {
         const sentAt = new Date(update.date * 1000);
 
         this.logger.log(
@@ -140,25 +141,35 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
 
           if (!entity) return;
 
+          const from = isMeSend ? me : entity;
+          const to = isMeSend ? entity : me;
+
           this.helperService.sendMessage({
             apiId,
-            from: entity,
-            to: me,
+            from,
+            to,
             text: update.message,
             sentAt,
           });
         } catch (err) {
           this.logger.error(`Error short message: ${err}`);
         }
-      } else if (
+      } else if (        
         this.avalibleClassNameMesasge.includes(update.className) &&
-        update.message &&
-        !update.message.out
+        update.message
       ) {
         const sentAt = new Date(update.message.date * 1000);
+        const from =
+          update.message.peerId?.chatId ??
+          update.message.peerId?.userId ??
+          update.message.peerId?.channelId;
+
+        if (String(from) === '4618057813') {
+          return;
+        }
 
         this.logger.log(
-          `New message to ${me.id} (@${me.username}) from ${update.message.peerId?.chatId ?? update.message.peerId?.userId ?? update.message.peerId?.channelId}`,
+          `New message to ${me.id} (@${me.username}) from ${from}`,
         );
         const message = update.message.message;
 
@@ -175,10 +186,13 @@ export class ListenerService implements OnModuleInit, OnApplicationShutdown {
             update.message,
           );
 
+          const from = isMeSend ? me : entity;
+          const to = isMeSend ? entity : me;
+
           this.helperService.sendMessage({
             apiId,
-            from: entity,
-            to: me,
+            from,
+            to,
             text: message,
             media: media ?? undefined,
             sentAt,
